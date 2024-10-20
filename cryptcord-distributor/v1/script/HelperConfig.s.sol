@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
+import {ERC20MockUSDT} from "../src/mocks/ERC20MockUSDT.sol";
 import {Script, console2} from "forge-std/Script.sol";
 
 abstract contract Constants {
@@ -54,11 +55,24 @@ contract HelperConfig is Constants, Types, Script {
     // │                             Config                           │
     // ================================================================
 
-    function getOrCreateAnvilConfig()
-        public
-        pure
-        returns (NetworkConfig memory)
-    {}
+    function getOrCreateAnvilConfig() public returns (NetworkConfig memory) {
+        if (s_localNetworkConfig.isInitialized) {
+            return s_localNetworkConfig;
+        }
+
+        console2.log(unicode"⚠️ You have deployed a mock conract!");
+        console2.log("Make sure this was intentional");
+        vm.startBroadcast();
+        ERC20MockUSDT usdt = new ERC20MockUSDT(1_000_000);
+        vm.stopBroadcast();
+        address[] memory tokens = new address[](1);
+        tokens[0] = address(usdt);
+        s_localNetworkConfig = NetworkConfig({
+            isInitialized: true,
+            supportedTokens: tokens
+        });
+        return s_localNetworkConfig;
+    }
 
     function getSepoliaConfig() public pure returns (NetworkConfig memory) {
         address[] memory tokens = new address[](2);
@@ -90,7 +104,7 @@ contract HelperConfig is Constants, Types, Script {
 
     function getConfigByChainId(
         uint256 chainId
-    ) public view returns (NetworkConfig memory) {
+    ) public returns (NetworkConfig memory) {
         if (s_networkConfigs[chainId].isInitialized) {
             return s_networkConfigs[chainId];
         } else if (chainId == ANVIL_CHAIN_ID) {

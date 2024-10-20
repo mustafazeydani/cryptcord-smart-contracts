@@ -40,10 +40,10 @@ contract CryptcordDistributorV1 is Ownable {
     // ================================================================
     /**
      * Constructor
-     * @param _supportedTokens Array of supported tokens' addresses
+     * @param supportedTokens Array of supported tokens' addresses
      */
-    constructor(address[] memory _supportedTokens) Ownable(msg.sender) {
-        s_supportedTokens = _supportedTokens;
+    constructor(address[] memory supportedTokens) Ownable(msg.sender) {
+        s_supportedTokens = supportedTokens;
     }
 
     // ================================================================
@@ -52,32 +52,32 @@ contract CryptcordDistributorV1 is Ownable {
 
     /**
      * Function to set fee percentage
-     * @param _feePercentage New fee percentage
+     * @param feePercentage New fee percentage
      */
-    function setFeePercentage(uint256 _feePercentage) external onlyOwner {
+    function setFeePercentage(uint256 feePercentage) external onlyOwner {
         // Ensure feePercentage does not exceed SCALE_FACTOR (100%)
-        if (_feePercentage > SCALE_FACTOR) {
-            revert CryptcordDistributorV1__InvalidFeePercentage(_feePercentage);
+        if (feePercentage > SCALE_FACTOR) {
+            revert CryptcordDistributorV1__InvalidFeePercentage(feePercentage);
         }
-        s_feePercentage = _feePercentage;
+        s_feePercentage = feePercentage;
     }
 
     /**
      * Function to add supported token
-     * @param _erc20Address Token's address
+     * @param erc20Address Token's address
      */
-    function addSupportedToken(address _erc20Address) external onlyOwner {
-        s_supportedTokens.push(_erc20Address);
+    function addSupportedToken(address erc20Address) external onlyOwner {
+        s_supportedTokens.push(erc20Address);
     }
 
     /**
      * Function to remove supported token
-     * @param _erc20Address Token's address
+     * @param erc20Address Token's address
      */
-    function removeSupportedToken(address _erc20Address) external onlyOwner {
+    function removeSupportedToken(address erc20Address) external onlyOwner {
         uint256 length = s_supportedTokens.length;
         for (uint256 i = 0; i < length; i++) {
-            if (s_supportedTokens[i] == _erc20Address) {
+            if (s_supportedTokens[i] == erc20Address) {
                 if (i != length - 1) {
                     s_supportedTokens[i] = s_supportedTokens[length - 1];
                 }
@@ -93,12 +93,12 @@ contract CryptcordDistributorV1 is Ownable {
 
     /**
      * Function to check if token is supported
-     * @param _erc20Address Token's address
+     * @param erc20Address Token's address
      */
-    function isTokenSupported(address _erc20Address) public view returns (bool) {
+    function isTokenSupported(address erc20Address) public view returns (bool) {
         uint256 length = s_supportedTokens.length;
         for (uint256 i = 0; i < length; i++) {
-            if (s_supportedTokens[i] == _erc20Address) {
+            if (s_supportedTokens[i] == erc20Address) {
                 return true;
             }
         }
@@ -107,33 +107,33 @@ contract CryptcordDistributorV1 is Ownable {
 
     /**
      * Function to distribute tokens and deduct fees
-     * @param _erc20Address Token's address
-     * @param _amount Amount to distribute
-     * @param _from Sender's address
-     * @param _to Receiver's address
-     * @param _paymentId Payment ID
+     * @param erc20Address Token's address
+     * @param amount Amount to distribute
+     * @param from Sender's address
+     * @param to Receiver's address
+     * @param paymentId Payment ID
      */
-    function distributeTokens(address _erc20Address, uint256 _amount, address _from, address _to, bytes16 _paymentId)
+    function distributeTokens(address erc20Address, uint256 amount, address from, address to, bytes16 paymentId)
         external
     {
-        if (!isTokenSupported(_erc20Address)) {
-            revert CryptcordDistributorV1__TokenNotSupported(_erc20Address);
+        if (!isTokenSupported(erc20Address)) {
+            revert CryptcordDistributorV1__TokenNotSupported(erc20Address);
         }
 
-        IERC20 token = IERC20(_erc20Address);
+        IERC20 token = IERC20(erc20Address);
 
         // Calculate the amounts
-        uint256 fee = (_amount * s_feePercentage) / SCALE_FACTOR;
-        uint256 transferAmount = _amount - fee;
+        uint256 fee = (amount * s_feePercentage) / SCALE_FACTOR;
+        uint256 transferAmount = amount - fee;
 
         // Transfer the fee to the owner
-        token.safeTransferFrom(_from, owner(), fee);
+        token.safeTransferFrom(from, owner(), fee);
 
         // Transfer the remaining amount to the destination address
-        token.safeTransferFrom(_from, _to, transferAmount);
+        token.safeTransferFrom(from, to, transferAmount);
 
         // Event
-        emit TokensTransferred(_erc20Address, _from, _to, _amount, fee, transferAmount, _paymentId);
+        emit TokensTransferred(erc20Address, from, to, amount, fee, transferAmount, paymentId);
     }
 
     // ================================================================
@@ -154,12 +154,12 @@ contract CryptcordDistributorV1 is Ownable {
 
     /**
      * Function to withdraw stuck ERC20 tokens
-     * @param _erc20Address Token's address
-     * @param _amount Amount to withdraw
+     * @param erc20Address Token's address
+     * @param amount Amount to withdraw
      */
-    function withdrawTokens(address _erc20Address, uint256 _amount) external onlyOwner {
-        IERC20 token = IERC20(_erc20Address);
-        token.safeTransfer(owner(), _amount);
+    function withdrawTokens(address erc20Address, uint256 amount) external onlyOwner {
+        IERC20 token = IERC20(erc20Address);
+        token.safeTransfer(owner(), amount);
     }
 
     /**
