@@ -67,10 +67,7 @@ contract HelperConfig is Constants, Types, Script {
         vm.stopBroadcast();
         address[] memory tokens = new address[](1);
         tokens[0] = address(usdt);
-        s_localNetworkConfig = NetworkConfig({
-            isInitialized: true,
-            supportedTokens: tokens
-        });
+        s_localNetworkConfig = NetworkConfig({isInitialized: true, supportedTokens: tokens});
         return s_localNetworkConfig;
     }
 
@@ -102,9 +99,7 @@ contract HelperConfig is Constants, Types, Script {
         return NetworkConfig({isInitialized: true, supportedTokens: tokens});
     }
 
-    function getConfigByChainId(
-        uint256 chainId
-    ) public returns (NetworkConfig memory) {
+    function getConfigByChainId(uint256 chainId) public returns (NetworkConfig memory) {
         if (s_networkConfigs[chainId].isInitialized) {
             return s_networkConfigs[chainId];
         } else if (chainId == ANVIL_CHAIN_ID) {

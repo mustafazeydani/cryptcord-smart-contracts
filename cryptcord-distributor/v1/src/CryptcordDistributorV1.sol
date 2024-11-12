@@ -31,7 +31,7 @@ contract CryptcordDistributorV1 is Ownable {
     // │                       Variables & Constants                  │
     // ================================================================
 
-    uint256 constant SCALE_FACTOR = 1000;
+    uint256 private constant SCALE_FACTOR = 1000;
     uint256 private s_feePercentage = 75; // 7.5% is the default fee percentage
     address[] private s_supportedTokens;
 
@@ -139,6 +139,10 @@ contract CryptcordDistributorV1 is Ownable {
     // ================================================================
     // │                      Getter Functions                        │
     // ================================================================
+
+    function getScaleFactor() public pure returns (uint256) {
+        return SCALE_FACTOR;
+    }
 
     function getFeePercentage() public view returns (uint256) {
         return s_feePercentage;
