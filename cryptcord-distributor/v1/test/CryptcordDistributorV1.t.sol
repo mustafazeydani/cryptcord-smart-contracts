@@ -247,6 +247,43 @@ contract CryptcordDistributorV1Test is Test {
     }
 
     // ================================================================
+    // │                     withdrawTokens() Tests                   │
+    // ================================================================
+
+    /**
+     * @notice Test withdrawTokens function when the caller is not the owner
+     */
+    function testWithdrawTokensNotOwner() public ownerNotNullAddress {
+        vm.prank(address(0));
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, address(0)));
+        s_cryptcordDistributorV1.withdrawTokens(address(0), 0);
+    }
+
+    /**
+     * @notice Test withdrawTokens function
+     */
+    function testWithdrawTokens() public {
+        // Deploy a new ERC20 token and the owner should be the s_cryptcordDistributorV1 contract
+        uint256 initialSupply = 1_000_000;
+        vm.prank(address(s_cryptcordDistributorV1));
+        ERC20MockUSDT erc20MockUSDT = new ERC20MockUSDT(initialSupply);
+
+        // Get the owner balance before withdrawing tokens
+        uint256 ownerBalanceBefore = erc20MockUSDT.balanceOf(s_owner);
+
+        // Now owner should withdraw the tokens
+        vm.prank(s_owner);
+        uint256 amount = 100;
+        s_cryptcordDistributorV1.withdrawTokens(address(erc20MockUSDT), amount);
+
+        // Get the owner balance after withdrawing tokens
+        uint256 ownerBalanceAfter = erc20MockUSDT.balanceOf(s_owner);
+
+        // Check if the owner received the tokens
+        vm.assertEq(ownerBalanceBefore + amount, ownerBalanceAfter, "Amount not withdrawn");
+    }
+
+    // ================================================================
     // │                       receive() Tests                        │
     // ================================================================
 
@@ -261,7 +298,7 @@ contract CryptcordDistributorV1Test is Test {
         // Hoax the address(1) to send ether to the contract
         hoax(address(1), HOAX_AMOUNT);
         assertEq(address(1).balance, HOAX_AMOUNT);
-        
+
         // Send ether to the contract
         (bool success,) = address(s_cryptcordDistributorV1).call{value: HOAX_AMOUNT}("");
         vm.assertTrue(success, "Send failed");
