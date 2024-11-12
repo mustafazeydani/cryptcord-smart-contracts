@@ -164,7 +164,7 @@ contract CryptcordDistributorV1Test is Test {
         TransferResult memory result = transferTokens();
 
         // Get receiver balance after transfer
-        uint256 receiverBalanceAfter = s_erc20MockUSDT.balanceOf(address(2));
+        uint256 receiverBalanceAfter = s_erc20MockUSDT.balanceOf(to);
 
         // Check if amount was sent to receiver
         vm.assertEq(receiverBalanceBefore + result.amountSent, receiverBalanceAfter, "Amount not sent to receiver");
