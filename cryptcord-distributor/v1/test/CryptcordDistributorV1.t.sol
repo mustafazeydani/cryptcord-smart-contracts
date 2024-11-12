@@ -103,9 +103,9 @@ contract CryptcordDistributorV1Test is Test {
         vm.assertEq(newFeePercentage, actualFeePercentage, "Fee percentage not set correctly");
     }
 
-    // ===========================================================================
-    // │ addSupportedToken() - removeSupportedToken() - isTokenSupported() Tests │
-    // ===========================================================================
+    // ==================================================================================================
+    // │ addSupportedToken() - removeSupportedToken() - isTokenSupported() - getSupportedTokens() Tests │
+    // ==================================================================================================
 
     /**
      * @notice Test addSupportedToken function when the caller is not the owner
@@ -117,12 +117,22 @@ contract CryptcordDistributorV1Test is Test {
     }
 
     /**
-     * @notice Test addSupportedToken function
+     * @notice Test addSupportedToken function with isTokenSupported()
      */
-    function testAddSupportedToken() public setOwner {
+    function testAddSupportedTokenWithIsTokenSupported() public setOwner {
         s_cryptcordDistributorV1.addSupportedToken(address(s_erc20MockUSDT));
         bool isSupportedToken = s_cryptcordDistributorV1.isTokenSupported(address(s_erc20MockUSDT));
         vm.assertEq(true, isSupportedToken, "Token not added");
+    }
+
+    /**
+     * @notice Test addSupportedToken function with getSupportedTokens()
+     */
+    function testAddSupportedTokenWithGetSupportedTokens() public setOwner {
+        address erc20Address = address(s_erc20MockUSDT);
+        s_cryptcordDistributorV1.addSupportedToken(erc20Address);
+        address[] memory supportedTokens = s_cryptcordDistributorV1.getSupportedTokens();
+        vm.assertEq(erc20Address, supportedTokens[0], "Token not added");
     }
 
     /**
