@@ -13,7 +13,11 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20MockUSDT} from "../src/mocks/ERC20MockUSDT.sol";
 import {console} from "forge-std/console.sol";
 
+/**
+ * @notice In these tests, owner is address(1), sender is address(2) and receiver is address(3)
+ */
 contract CryptcordDistributorV1Test is Test {
+    address private s_owner = address(1);
     CryptcordDistributorV1 private s_cryptcordDistributorV1;
     ERC20MockUSDT private s_erc20MockUSDT;
 
@@ -25,16 +29,34 @@ contract CryptcordDistributorV1Test is Test {
         view
         returns (address erc20Address, uint256 amount, address from, address to, bytes16 paymentId)
     {
-        // In these tests, sender is address(1) and receiver is address(2)
         return (
-            address(s_erc20MockUSDT), 1 * 10 ** s_erc20MockUSDT.decimals(), address(1), address(2), bytes16(uint128(4))
+            address(s_erc20MockUSDT), 1 * 10 ** s_erc20MockUSDT.decimals(), address(2), address(3), bytes16(uint128(4))
         );
     }
+
+    // ================================================================
+    // │                           Modifiers                          │
+    // ================================================================
+
+    modifier setOwner() {
+        vm.startPrank(s_owner);
+        _;
+        vm.stopPrank();
+    }
+
+    modifier ownerNotNullAddress() {
+        vm.assertNotEq(s_owner, address(0), "Owner is address(0)");
+        _;
+    }
+
+    // ================================================================
+    // │                           Setup                              │
+    // ================================================================
 
     /**
      * @notice Set up the test environment
      */
-    function setUp() public {
+    function setUp() public setOwner {
         address[] memory supportedTokens = new address[](0);
         uint256 initialSupply = 1_000_000;
 
@@ -50,11 +72,6 @@ contract CryptcordDistributorV1Test is Test {
     // │                    setFeePercentage() Tests                  │
     // ================================================================
 
-    modifier ownerNotNullAddress() {
-        vm.assertNotEq(s_cryptcordDistributorV1.owner(), address(0), "Owner address is set to address(0)");
-        _;
-    }
-
     /**
      * @notice Test setFeePercentage function when the caller is not the owner
      */
@@ -67,7 +84,7 @@ contract CryptcordDistributorV1Test is Test {
     /**
      * @notice Test setFeePercentage function when the fee percentage is invalid
      */
-    function testSetFeePercentageInvalidFeePercentage() public {
+    function testSetFeePercentageInvalidFeePercentage() public setOwner {
         uint256 invalidFeePercentage = s_cryptcordDistributorV1.getScaleFactor() + 1;
         vm.expectRevert(
             abi.encodeWithSelector(
@@ -80,7 +97,7 @@ contract CryptcordDistributorV1Test is Test {
     /**
      * @notice Test setFeePercentage function when the fee percentage is valid
      */
-    function testSetFeePercentage() public {
+    function testSetFeePercentage() public setOwner {
         uint256 newFeePercentage = 50; // 5%
         s_cryptcordDistributorV1.setFeePercentage(newFeePercentage);
         uint256 actualFeePercentage = s_cryptcordDistributorV1.getFeePercentage();
@@ -103,7 +120,7 @@ contract CryptcordDistributorV1Test is Test {
     /**
      * @notice Test addSupportedToken function
      */
-    function testAddSupportedToken() public {
+    function testAddSupportedToken() public setOwner {
         s_cryptcordDistributorV1.addSupportedToken(address(s_erc20MockUSDT));
         bool isSupportedToken = s_cryptcordDistributorV1.isTokenSupported(address(s_erc20MockUSDT));
         vm.assertEq(true, isSupportedToken, "Token not added");
@@ -121,7 +138,7 @@ contract CryptcordDistributorV1Test is Test {
     /**
      * @notice Test removeSupportedToken function
      */
-    function testRemoveSupportedToken() public {
+    function testRemoveSupportedToken() public setOwner {
         // First add the token
         s_cryptcordDistributorV1.addSupportedToken(address(s_erc20MockUSDT));
         bool isTokenAdded = s_cryptcordDistributorV1.isTokenSupported(address(s_erc20MockUSDT));
@@ -134,7 +151,7 @@ contract CryptcordDistributorV1Test is Test {
     }
 
     // ================================================================
-    // │                    distributeTokens Tests                    │
+    // │                    distributeTokens() Tests                  │
     // ================================================================
 
     struct TransferResult {
@@ -158,12 +175,13 @@ contract CryptcordDistributorV1Test is Test {
         bytes16 paymentId
     ) internal returns (TransferResult memory result) {
         // Add erc20Address to supported tokens
+        vm.prank(s_owner);
         s_cryptcordDistributorV1.addSupportedToken(erc20Address);
 
         // Prank sender and approve tokens to distributor
         vm.prank(from);
         s_erc20MockUSDT.approve(address(s_cryptcordDistributorV1), amount);
-
+        vm.startPrank(s_owner);
         // Calculate fee and amount sent
         uint256 fee = (amount * s_cryptcordDistributorV1.getFeePercentage()) / s_cryptcordDistributorV1.getScaleFactor();
         uint256 transferAmount = amount - fee;
@@ -197,13 +215,13 @@ contract CryptcordDistributorV1Test is Test {
         (address erc20Address, uint256 amount, address from, address to, bytes16 paymentId) = getDistributeTokensArgs();
 
         // Get owner balance before transfer
-        uint256 ownerBalanceBefore = s_erc20MockUSDT.balanceOf(s_cryptcordDistributorV1.owner());
+        uint256 ownerBalanceBefore = s_erc20MockUSDT.balanceOf(s_owner);
 
         // Transfer tokens and calculate fee
         TransferResult memory result = transferTokensAndTestEventEmit(erc20Address, amount, from, to, paymentId);
 
         // Get owner balance after transfer
-        uint256 ownerBalanceAfter = s_erc20MockUSDT.balanceOf(s_cryptcordDistributorV1.owner());
+        uint256 ownerBalanceAfter = s_erc20MockUSDT.balanceOf(s_owner);
 
         // Check if fee was sent to owner
         vm.assertEq(ownerBalanceBefore + result.fee, ownerBalanceAfter, "Fee not sent to owner");
@@ -226,5 +244,30 @@ contract CryptcordDistributorV1Test is Test {
 
         // Check if amount was sent to receiver
         vm.assertEq(receiverBalanceBefore + result.transferAmount, receiverBalanceAfter, "Amount not sent to receiver");
+    }
+
+    // ================================================================
+    // │                       receive() Tests                        │
+    // ================================================================
+
+    uint256 private constant HOAX_AMOUNT = 1 ether;
+
+    /**
+     * @notice Test receive function
+     */
+    function testReceive() public {
+        uint256 ownerBalanceBefore = s_owner.balance;
+
+        // Hoax the address(1) to send ether to the contract
+        hoax(address(1), HOAX_AMOUNT);
+        assertEq(address(1).balance, HOAX_AMOUNT);
+        
+        // Send ether to the contract
+        (bool success,) = address(s_cryptcordDistributorV1).call{value: HOAX_AMOUNT}("");
+        vm.assertTrue(success, "Send failed");
+
+        // Check the owner balance after receiving ether
+        uint256 ownerBalanceAfter = address(s_owner).balance;
+        vm.assertEq(ownerBalanceBefore + HOAX_AMOUNT, ownerBalanceAfter, "Amount not received");
     }
 }
