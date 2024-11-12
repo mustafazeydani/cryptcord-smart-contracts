@@ -108,13 +108,17 @@ contract CryptcordDistributorV1Test is Test {
     // ================================================================
 
     struct TransferResult {
-        uint256 amountSent;
+        uint256 transferAmount;
         uint256 fee;
     }
 
-    function transferTokens() internal returns (TransferResult memory result) {
-        (address erc20Address, uint256 amount, address from, address to, bytes16 paymentId) = getDistributeTokensArgs();
-
+    function transferTokensAndTestEventEmit(
+        address erc20Address,
+        uint256 amount,
+        address from,
+        address to,
+        bytes16 paymentId
+    ) internal returns (TransferResult memory result) {
         // Add erc20Address to supported tokens
         s_cryptcordDistributorV1.addSupportedToken(erc20Address);
 
@@ -122,13 +126,18 @@ contract CryptcordDistributorV1Test is Test {
         vm.prank(from);
         s_erc20MockUSDT.approve(address(s_cryptcordDistributorV1), amount);
 
+        // Calculate fee and amount sent
+        uint256 fee = (amount * s_cryptcordDistributorV1.getFeePercentage()) / s_cryptcordDistributorV1.getScaleFactor();
+        uint256 transferAmount = amount - fee;
+
+        // Test event emission
+        vm.expectEmit(true, true, true, true, address(s_cryptcordDistributorV1));
+        emit TokensTransferred(erc20Address, from, to, amount, fee, transferAmount, paymentId);
+
         // Distribute tokens
         s_cryptcordDistributorV1.distributeTokens(erc20Address, amount, from, to, paymentId);
 
-        // Calculate fee and amount sent
-        uint256 fee = (amount * s_cryptcordDistributorV1.getFeePercentage()) / s_cryptcordDistributorV1.getScaleFactor();
-        result.amountSent = amount - fee;
-        result.fee = fee;
+        return TransferResult(transferAmount, fee);
     }
 
     function testDistributeTokensTokenNotSupported() public {
@@ -141,11 +150,13 @@ contract CryptcordDistributorV1Test is Test {
     }
 
     function testDistributeTokensFeeSentToOwner() public {
+        (address erc20Address, uint256 amount, address from, address to, bytes16 paymentId) = getDistributeTokensArgs();
+
         // Get owner balance before transfer
         uint256 ownerBalanceBefore = s_erc20MockUSDT.balanceOf(s_cryptcordDistributorV1.owner());
 
         // Transfer tokens and calculate fee
-        TransferResult memory result = transferTokens();
+        TransferResult memory result = transferTokensAndTestEventEmit(erc20Address, amount, from, to, paymentId);
 
         // Get owner balance after transfer
         uint256 ownerBalanceAfter = s_erc20MockUSDT.balanceOf(s_cryptcordDistributorV1.owner());
@@ -155,18 +166,18 @@ contract CryptcordDistributorV1Test is Test {
     }
 
     function testDistributeTokensAmountSentToReceiver() public {
-        (,,, address to,) = getDistributeTokensArgs();
+        (address erc20Address, uint256 amount, address from, address to, bytes16 paymentId) = getDistributeTokensArgs();
 
         // Get receiver balance before transfer
         uint256 receiverBalanceBefore = s_erc20MockUSDT.balanceOf(to);
 
         // Transfer tokens and calculate fee
-        TransferResult memory result = transferTokens();
+        TransferResult memory result = transferTokensAndTestEventEmit(erc20Address, amount, from, to, paymentId);
 
         // Get receiver balance after transfer
         uint256 receiverBalanceAfter = s_erc20MockUSDT.balanceOf(to);
 
         // Check if amount was sent to receiver
-        vm.assertEq(receiverBalanceBefore + result.amountSent, receiverBalanceAfter, "Amount not sent to receiver");
+        vm.assertEq(receiverBalanceBefore + result.transferAmount, receiverBalanceAfter, "Amount not sent to receiver");
     }
 }
