@@ -11,7 +11,6 @@ import {
 import {DeployCryptcordDistributorV1} from "../script/DeployCryptcordDistributorV1.s.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ERC20MockUSDT} from "../src/mocks/ERC20MockUSDT.sol";
-import {console} from "forge-std/console.sol";
 
 /**
  * @notice In these tests, owner is address(1), sender is address(2) and receiver is address(3)
@@ -295,9 +294,9 @@ contract CryptcordDistributorV1Test is Test {
     function testReceive() public {
         uint256 ownerBalanceBefore = s_owner.balance;
 
-        // Hoax the address(1) to send ether to the contract
-        hoax(address(1), HOAX_AMOUNT);
-        assertEq(address(1).balance, HOAX_AMOUNT);
+        // Hoax the address(2) to send ether to the contract
+        hoax(address(2), HOAX_AMOUNT);
+        assertEq(address(2).balance, HOAX_AMOUNT);
 
         // Send ether to the contract
         (bool success,) = address(s_cryptcordDistributorV1).call{value: HOAX_AMOUNT}("");
