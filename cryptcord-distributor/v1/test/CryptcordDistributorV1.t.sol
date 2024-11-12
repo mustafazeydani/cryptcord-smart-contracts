@@ -155,13 +155,18 @@ contract CryptcordDistributorV1Test is Test {
     }
 
     function testDistributeTokensAmountSentToReceiver() public {
+        (,,, address to,) = getDistributeTokensArgs();
+
+        // Get receiver balance before transfer
+        uint256 receiverBalanceBefore = s_erc20MockUSDT.balanceOf(to);
+
         // Transfer tokens and calculate fee
         TransferResult memory result = transferTokens();
 
-        // Check if amount was sent to receiver
-        uint256 receiverBalance = s_erc20MockUSDT.balanceOf(address(2));
+        // Get receiver balance after transfer
+        uint256 receiverBalanceAfter = s_erc20MockUSDT.balanceOf(address(2));
 
         // Check if amount was sent to receiver
-        vm.assertEq(result.amountSent, receiverBalance, "Amount not sent to receiver");
+        vm.assertEq(receiverBalanceBefore + result.amountSent, receiverBalanceAfter, "Amount not sent to receiver");
     }
 }
