@@ -17,6 +17,9 @@ contract CryptcordDistributorV1Test is Test {
     CryptcordDistributorV1 private s_cryptcordDistributorV1;
     ERC20MockUSDT private s_erc20MockUSDT;
 
+    /**
+     * @notice Get arguments for distributeTokens function
+     */
     function getDistributeTokensArgs()
         internal
         view
@@ -28,6 +31,9 @@ contract CryptcordDistributorV1Test is Test {
         );
     }
 
+    /**
+     * @notice Set up the test environment
+     */
     function setUp() public {
         address[] memory supportedTokens = new address[](0);
         uint256 initialSupply = 1_000_000;
@@ -49,12 +55,18 @@ contract CryptcordDistributorV1Test is Test {
         _;
     }
 
+    /**
+     * @notice Test setFeePercentage function when the caller is not the owner
+     */
     function testSetFeePercentageNotOwner() public ownerNotNullAddress {
         vm.prank(address(0));
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, address(0)));
         s_cryptcordDistributorV1.setFeePercentage(0);
     }
 
+    /**
+     * @notice Test setFeePercentage function when the fee percentage is invalid
+     */
     function testSetFeePercentageInvalidFeePercentage() public {
         uint256 invalidFeePercentage = s_cryptcordDistributorV1.getScaleFactor() + 1;
         vm.expectRevert(
@@ -65,8 +77,11 @@ contract CryptcordDistributorV1Test is Test {
         s_cryptcordDistributorV1.setFeePercentage(invalidFeePercentage);
     }
 
+    /**
+     * @notice Test setFeePercentage function when the fee percentage is valid
+     */
     function testSetFeePercentage() public {
-        uint256 newFeePercentage = 50;
+        uint256 newFeePercentage = 50; // 5%
         s_cryptcordDistributorV1.setFeePercentage(newFeePercentage);
         uint256 actualFeePercentage = s_cryptcordDistributorV1.getFeePercentage();
         vm.assertEq(newFeePercentage, actualFeePercentage, "Fee percentage not set correctly");
@@ -76,28 +91,43 @@ contract CryptcordDistributorV1Test is Test {
     // │ addSupportedToken() - removeSupportedToken() - isTokenSupported() Tests │
     // ===========================================================================
 
+    /**
+     * @notice Test addSupportedToken function when the caller is not the owner
+     */
     function testAddSupportedTokenNotOwner() public ownerNotNullAddress {
         vm.prank(address(0));
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, address(0)));
         s_cryptcordDistributorV1.addSupportedToken(address(0));
     }
 
+    /**
+     * @notice Test addSupportedToken function
+     */
     function testAddSupportedToken() public {
         s_cryptcordDistributorV1.addSupportedToken(address(s_erc20MockUSDT));
         bool isSupportedToken = s_cryptcordDistributorV1.isTokenSupported(address(s_erc20MockUSDT));
         vm.assertEq(true, isSupportedToken, "Token not added");
     }
 
+    /**
+     * @notice Test removeSupportedToken function when the caller is not the owner
+     */
     function testRemoveSupportedTokenNotOwner() public ownerNotNullAddress {
         vm.prank(address(0));
         vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, address(0)));
         s_cryptcordDistributorV1.removeSupportedToken(address(0));
     }
 
+    /**
+     * @notice Test removeSupportedToken function
+     */
     function testRemoveSupportedToken() public {
+        // First add the token
         s_cryptcordDistributorV1.addSupportedToken(address(s_erc20MockUSDT));
         bool isTokenAdded = s_cryptcordDistributorV1.isTokenSupported(address(s_erc20MockUSDT));
         vm.assertEq(true, isTokenAdded, "Token not added");
+
+        // Then remove the token
         s_cryptcordDistributorV1.removeSupportedToken(address(s_erc20MockUSDT));
         bool isTokenRemoved = !s_cryptcordDistributorV1.isTokenSupported(address(s_erc20MockUSDT));
         vm.assertEq(true, isTokenRemoved, "Token not removed");
@@ -112,6 +142,14 @@ contract CryptcordDistributorV1Test is Test {
         uint256 fee;
     }
 
+    /**
+     * @notice Transfer tokens and test event emission
+     * @param erc20Address The address of the ERC20 token
+     * @param amount The amount of tokens to transfer
+     * @param from The address of the sender
+     * @param to The address of the receiver
+     * @param paymentId The payment ID
+     */
     function transferTokensAndTestEventEmit(
         address erc20Address,
         uint256 amount,
@@ -140,6 +178,9 @@ contract CryptcordDistributorV1Test is Test {
         return TransferResult(transferAmount, fee);
     }
 
+    /**
+     * @notice Test distributeTokens function when the token is not supported
+     */
     function testDistributeTokensTokenNotSupported() public {
         (address erc20Address, uint256 amount, address from, address to, bytes16 paymentId) = getDistributeTokensArgs();
 
@@ -149,6 +190,9 @@ contract CryptcordDistributorV1Test is Test {
         s_cryptcordDistributorV1.distributeTokens(erc20Address, amount, from, to, paymentId);
     }
 
+    /**
+     * @notice Test distributeTokens function and check if fee is sent to owner
+     */
     function testDistributeTokensFeeSentToOwner() public {
         (address erc20Address, uint256 amount, address from, address to, bytes16 paymentId) = getDistributeTokensArgs();
 
@@ -165,6 +209,9 @@ contract CryptcordDistributorV1Test is Test {
         vm.assertEq(ownerBalanceBefore + result.fee, ownerBalanceAfter, "Fee not sent to owner");
     }
 
+    /**
+     * @notice Test distributeTokens function and check if amount is sent to receiver
+     */
     function testDistributeTokensAmountSentToReceiver() public {
         (address erc20Address, uint256 amount, address from, address to, bytes16 paymentId) = getDistributeTokensArgs();
 

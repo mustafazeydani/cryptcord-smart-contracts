@@ -39,7 +39,7 @@ contract CryptcordDistributorV1 is Ownable {
     // │                         Constructor                          │
     // ================================================================
     /**
-     * Constructor
+     * @notice Constructor
      * @param supportedTokens Array of supported tokens' addresses
      */
     constructor(address[] memory supportedTokens) Ownable(msg.sender) {
@@ -51,7 +51,7 @@ contract CryptcordDistributorV1 is Ownable {
     // ================================================================
 
     /**
-     * Function to set fee percentage
+     * @notice Function to set fee percentage
      * @param feePercentage New fee percentage
      */
     function setFeePercentage(uint256 feePercentage) external onlyOwner {
@@ -63,7 +63,7 @@ contract CryptcordDistributorV1 is Ownable {
     }
 
     /**
-     * Function to add supported token
+     * @notice Function to add supported token
      * @param erc20Address Token's address
      */
     function addSupportedToken(address erc20Address) external onlyOwner {
@@ -71,7 +71,7 @@ contract CryptcordDistributorV1 is Ownable {
     }
 
     /**
-     * Function to remove supported token
+     * @notice Function to remove supported token
      * @param erc20Address Token's address
      */
     function removeSupportedToken(address erc20Address) external onlyOwner {
@@ -92,7 +92,7 @@ contract CryptcordDistributorV1 is Ownable {
     // ================================================================
 
     /**
-     * Function to check if token is supported
+     * @notice Function to check if token is supported
      * @param erc20Address Token's address
      */
     function isTokenSupported(address erc20Address) public view returns (bool) {
@@ -106,7 +106,7 @@ contract CryptcordDistributorV1 is Ownable {
     }
 
     /**
-     * Function to distribute tokens and deduct fees
+     * @notice Function to distribute tokens and deduct fees
      * @param erc20Address Token's address
      * @param amount Amount to distribute
      * @param from Sender's address
@@ -157,7 +157,7 @@ contract CryptcordDistributorV1 is Ownable {
     // ================================================================
 
     /**
-     * Function to withdraw stuck ERC20 tokens
+     * @notice Function to withdraw stuck ERC20 tokens
      * @param erc20Address Token's address
      * @param amount Amount to withdraw
      */
@@ -167,7 +167,7 @@ contract CryptcordDistributorV1 is Ownable {
     }
 
     /**
-     * Automatically forward received native currency to the owner
+     * @notice Automatically forward received native currency to the owner
      */
     receive() external payable {
         (bool s,) = payable(owner()).call{value: msg.value}(new bytes(0));
